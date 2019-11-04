@@ -77,6 +77,16 @@ sys_sleep(void)
   return 0;
 }
 
+int
+sys_waitx(void)
+{
+	int *wtime;
+	int *rtime;
+	if(argptr(0,(char**)&wtime,sizeof(int))<0 || argptr(0,(char**)&rtime,sizeof(int))<0)
+		return -1;
+	return waitx(wtime,rtime);
+}
+
 // return how many clock tick interrupts have occurred
 // since start.
 int
