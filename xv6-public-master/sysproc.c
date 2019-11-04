@@ -76,7 +76,12 @@ sys_sleep(void)
   release(&tickslock);
   return 0;
 }
-
+int
+sys_halt(void)
+{
+  outb(0xf4, 0x00);
+  return 0;
+}
 // return how many clock tick interrupts have occurred
 // since start.
 int
