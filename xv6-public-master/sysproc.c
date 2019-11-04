@@ -76,14 +76,12 @@ sys_sleep(void)
   release(&tickslock);
   return 0;
 }
-<<<<<<< HEAD
 int
 sys_halt(void)
 {
   outb(0xf4, 0x00);
   return 0;
 }
-=======
 
 int
 sys_waitx(void)
@@ -95,7 +93,6 @@ sys_waitx(void)
 	return waitx(wtime,rtime);
 }
 
->>>>>>> master
 // return how many clock tick interrupts have occurred
 // since start.
 int
