@@ -53,6 +53,13 @@ trap(struct trapframe *tf)
       ticks++;
       wakeup(&ticks);
       release(&tickslock);
+	  //Update the runtime for the process
+	  struct proc *curproc = myproc();
+	  if(curproc && curproc->state == RUNNING)
+	  {
+		  curproc->rtime++;
+		  curproc->etime = ticks;
+	  }
     }
     lapiceoi();
     break;

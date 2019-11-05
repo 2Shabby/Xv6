@@ -111,7 +111,9 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
-
+  p->ctime = ticks;
+  p->rtime = 0;
+  p->etime = 0;
   return p;
 }
 
@@ -263,6 +265,8 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+  //endtime updation
+  curproc->etime = ticks;
   sched();
   panic("zombie exit");
 }

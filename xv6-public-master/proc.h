@@ -59,3 +59,12 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+// Extra structure providing additional process info
+struct proc_stat{
+	int pid;					//Process id
+	float runtime;				//Time that the process has run for
+	int num_run;				//Number of times that the process has been called to run
+	int curr_queue;				//The current queue that the process is present in [0-4]
+	int ticks[5];				//The total ticks that the process has spent in each queue
+};	
