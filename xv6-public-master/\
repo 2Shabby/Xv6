@@ -115,7 +115,6 @@ found:
   p->ctime = ticks;
   p->rtime = 0;
   p->etime = 0;
-  p->priority = 96;
   return p;
 }
 
@@ -373,7 +372,8 @@ waitx(int *wtime, int *rtime)
 void
 scheduler(void)
 {
-#ifdef RR
+  //if(SCHEDULER[0]=='R')
+  if(check==1)
   {
 	  struct proc *p;
 	  struct cpu *c = mycpu();
@@ -403,11 +403,12 @@ scheduler(void)
 		  // It should have changed its p->state before coming back.
 		  c->proc = 0;
 		}
+//		cprintf("DADDY\n");
 		release(&ptable.lock);
 	}
   }
-#else
-#ifdef FCFS
+  else
+//  if(check==2)
   {
 	  struct proc *p,*to_run;
 	  struct cpu *c = mycpu();
@@ -443,50 +444,10 @@ scheduler(void)
 				switchkvm();
 				c->proc=0;
 			}
+//		cprintf("DADDY\n");
 	  release(&ptable.lock);
 	  }
   }
-#else
-#ifdef PBS
-	{
-		struct proc *p, *prio_proc;
-		struct cpu *c = mycpu();
-		c->proc = 0;
-		prio_proc = 0;
-		int currprio=123456;
-		for(;;)
-		{
-			sti();
-			p = ptable.proc;
-			prio_proc = 0;
-			currprio = 123456;
-			acquire(&ptable.lock);
-			for(p=ptable.proc;p<&ptable.proc[NPROC];p++)
-			{
-				if(p->state==RUNNABLE){
-					if(p->priority<currprio||currprio==123456)
-					{
-						prio_proc = p;
-						currprio = prio_proc->priority;
-					}
-				}
-			}
-			if(prio_proc)
-			{
-				c->proc = prio_proc;
-				switchuvm(prio_proc);
-				prio_proc->state = RUNNING;
-				swtch(&(c->scheduler),prio_proc->context);
-				switchkvm();
-				c->proc=0;
-			}
-		release(&ptable.lock);
-		}
-	}
-#endif
-#endif
-#endif
-
 }
 
 // Enter scheduler.  Must hold only ptable.lock

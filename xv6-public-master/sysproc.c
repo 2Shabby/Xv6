@@ -92,7 +92,12 @@ sys_waitx(void)
 		return -1;
 	return waitx(wtime,rtime);
 }
-
+int
+sys_getpinfo(void)
+{
+//	struct proc_stat * proc_stat;
+	return 0;/*getpinfo(*proc_stat);*/
+}
 // return how many clock tick interrupts have occurred
 // since start.
 int
