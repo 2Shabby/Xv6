@@ -6,8 +6,6 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-//const char *scheduler = SCHEDULER;
-int check=2;
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -116,6 +114,7 @@ found:
   p->rtime = 0;
   p->etime = 0;
   p->priority = 96;
+  p->q_no=-1;
   return p;
 }
 
@@ -301,6 +300,7 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+		p->q_no=-1;
         release(&ptable.lock);
         return pid;
       }
@@ -347,6 +347,7 @@ waitx(int *wtime, int *rtime)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+		p->q_no=-1;
         release(&ptable.lock);
         return pid;
       }
@@ -362,6 +363,7 @@ waitx(int *wtime, int *rtime)
     sleep(proc, &ptable.lock);  //DOC: wait-sleep
   }
 }
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -388,7 +390,7 @@ scheduler(void)
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 		  if(p->state != RUNNABLE)
 			continue;
-		  cprintf("%d",p->ctime);
+	//	  cprintf("%d",p->ctime);
 		  // Switch to chosen process.  It is the process's job
 		  // to release ptable.lock and then reacquire it
 		  // before jumping back to us.
@@ -466,6 +468,7 @@ scheduler(void)
 				if(p->state==RUNNABLE){
 					if(p->priority<currprio||currprio==123456)
 					{
+			//			cprintf("%s",p->name);
 						prio_proc = p;
 						currprio = prio_proc->priority;
 					}
@@ -481,6 +484,142 @@ scheduler(void)
 				c->proc=0;
 			}
 		release(&ptable.lock);
+		}
+	}
+	#else
+	{
+		struct proc *q[5][NPROC];
+		int front[] = {0,0,0,0,0};
+		int back[] = {0,0,0,0,0}; 
+		int size[] = {0,0,0,0,0};
+		struct cpu *c = mycpu();
+		struct proc *p;
+		p=0;
+		for(;;)
+		{
+			sti();
+			acquire(&ptable.lock);
+			p = 0;
+			for(p=ptable.proc;p<&ptable.proc[NPROC];p++)
+			{
+				if(p->state==RUNNABLE&&p->q_no==-1)
+				{
+					back[0]=(back[0]+1)%NPROC;
+					q[0][back[0]]=p;
+					size[0]++;
+					p->q_no = 0;
+					cprintf("%d %s",p->pid,p->name);
+				}
+			}
+			if(size[0]!=0)
+			{
+				c->proc = q[0][front[0]];
+				cprintf("111");
+				switchuvm(c->proc);
+				cprintf("!!!");
+				q[0][front[0]]->state  = RUNNING;
+				swtch(&(c->scheduler),q[0][front[0]]->context);
+				switchkvm();
+				c->proc=0;
+				if(q[0][front[0]]->state==RUNNABLE)
+				{
+					back[1]=(back[1]+1)%NPROC;
+					q[1][back[1]] = q[0][front[0]];
+					size[1]++;
+				}
+				size[0]--;
+				front[0] = front[0] + NPROC - 1;
+				front[0]%=NPROC;
+			}
+			else
+			if(size[1]!=0)
+			{
+				for(int i=0;i<2&&q[1][front[1]]->state==RUNNABLE;i++)
+				{
+					c->proc = q[1][front[1]];
+					switchuvm(c->proc);
+					q[1][front[1]]->state = RUNNING;
+					swtch(&(c->scheduler),q[1][front[1]]->context);
+					switchkvm();
+					c->proc=0;
+				}
+				if(q[1][front[1]]->state == RUNNABLE)
+				{
+					back[2]=(back[2]+1)&NPROC;
+					q[2][back[2]]=q[1][front[1]];
+					size[2]++;
+				}
+				size[1]--;
+				front[1] = front[1] + NPROC - 1;
+				front[1]%=NPROC;
+			}
+			else
+			if(size[2]!=0)
+			{
+				for(int i=0;i<2&&q[2][front[2]]->state==RUNNABLE;i++)
+				{
+					c->proc = q[2][front[2]];
+					switchuvm(c->proc);
+					q[2][front[2]]->state = RUNNING;
+					swtch(&(c->scheduler),q[2][front[2]]->context);
+					switchkvm();
+					c->proc=0;
+				}
+				if(q[2][front[2]]->state == RUNNABLE)
+				{
+					back[3]=(back[3]+1)&NPROC;
+					q[3][back[3]]=q[2][front[2]];
+					size[3]++;
+				}
+				size[2]--;
+				front[2] = front[2] + NPROC - 1;
+				front[2]%=NPROC;
+			}
+			else
+			if(size[3]!=0)
+			{
+				for(int i=0;i<2&&q[3][front[3]]->state==RUNNABLE;i++)
+				{
+					c->proc = q[3][front[3]];
+					switchuvm(c->proc);
+					q[3][front[3]]->state = RUNNING;
+					swtch(&(c->scheduler),q[3][front[3]]->context);
+					switchkvm();
+					c->proc=0;
+				}
+				if(q[3][front[3]]->state == RUNNABLE)
+				{
+					back[4]=(back[4]+1)&NPROC;
+					q[4][back[4]]=q[3][front[3]];
+					size[4]++;
+				}
+				size[3]--;
+				front[3] = front[3] + NPROC - 1;
+				front[3]%=NPROC;
+			}
+			else
+			if(size[4]!=0)
+			{
+				for(int i=0;i<2&&q[4][front[4]]->state==RUNNABLE;i++)
+				{
+					c->proc = q[4][front[4]];
+					switchuvm(c->proc);
+					q[4][front[4]]->state = RUNNING;
+					swtch(&(c->scheduler),q[4][front[4]]->context);
+					switchkvm();
+					c->proc=0;
+				}
+				if(q[4][front[4]]->state == RUNNABLE)
+				{
+					back[4]=(back[4]+1)&NPROC;
+					q[4][back[4]]=q[4][front[4]];
+					size[4]++;
+				}
+				size[4]--;
+				front[4] = front[4] + NPROC - 1;
+				front[4]%=NPROC;
+			}
+			release(&ptable.lock);
 		}
 	}
 #endif
@@ -584,11 +723,27 @@ sleep(void *chan, struct spinlock *lk)
     acquire(lk);
   }
 }
-/*
-void 
+
+int
 getpinfo(struct proc_stat* proc_stat)
 {
-*/
+	acquire(&ptable.lock);
+	struct proc *p;
+	for(p=ptable.proc;p<&ptable.proc[NPROC];p++)
+	{
+		if(proc_stat->pid == p->pid)
+		{
+			proc_stat->runtime = p->rtime;
+#ifdef FCFS
+			proc_stat->num_run = 1;
+#else      
+			proc_stat->num_run = p->rtime;
+#endif
+		}
+	}
+	return 0;
+}
+
 	
 //PAGEBREAK!
 // Wake up all processes sleeping on chan.
@@ -670,4 +825,29 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+void
+cpuinfodisp(void)
+{
+	struct proc *p;
+	for(p=ptable.proc;p<&ptable.proc[NPROC];p++)
+	{
+		if(p->state==UNUSED)
+			continue;
+		else
+		if(p->state==SLEEPING)
+		{
+			cprintf("%d SLEEPING : CREATETIME = %d : RUNTIME = %d : ENDTIME = %d\n");
+		}
+		else
+		if(p->state==RUNNING)
+		{
+			cprintf("%d RUNNING : CREATETIME = %d : RUNTIME = %d : ENDTIME = %d\n");
+		}
+		else
+		if(p->state==RUNNABLE)
+		{
+			cprintf("%d RUNNABLE : CREATETIME = %d : RUNTIME = %d : ENDTIME = %d\n");
+		}
+	}
 }

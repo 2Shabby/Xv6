@@ -95,7 +95,9 @@ sys_waitx(void)
 int
 sys_getpinfo(void)
 {
-//	struct proc_stat * proc_stat;
+	struct proc_stat *s;
+	s=0;
+	getpinfo(s);
 	return 0;/*getpinfo(*proc_stat);*/
 }
 // return how many clock tick interrupts have occurred
@@ -109,4 +111,9 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+int sys_cpudisp()
+{
+//	cpuinfodisp();
+	return 0;
 }

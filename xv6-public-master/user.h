@@ -27,6 +27,7 @@ int uptime(void);
 int halt(void);
 int waitx(int* wtime, int* rtime);
 int getpinfo(struct proc_stat *proc_stat);
+int cpudisp(void);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
